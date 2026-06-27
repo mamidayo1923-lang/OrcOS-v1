@@ -35,7 +35,21 @@ if [ ! -d "limine" ]; then
     # エラー時の自動停止を元に戻す
     set -e
 
-    # --- ここから nasm のチェックとインストール（追加） ---
+    # --- 32ビット開発ツールのインストール（追加） ---
+    echo "32-bit development tools をインストールしています..."
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get update
+      sudo apt-get install -y --no-install-recommends gcc-multilib g++-multilib
+    elif command -v yum >/dev/null 2>&1; then
+      sudo yum install -y glibc-devel.i686 gcc
+    elif command -v brew >/dev/null 2>&1; then
+      echo "macOS では 32-bit tools は不要です"
+    else
+      echo "警告: 32ビット開発ツールの自動インストールがサポートされていません" >&2
+    fi
+    # --- ここまで追加 ---
+
+    # --- ここから nasm のチェックとインストール ---
     # Limine の configure が nasm を必要とするため、ホストに nasm がなければ自動で入れる
     if ! command -v nasm >/dev/null 2>&1; then
       echo "nasm が見つかりません。インストールを試みます..."
@@ -51,7 +65,7 @@ if [ ! -d "limine" ]; then
         exit 1
       fi
     fi
-    # --- ここまで追加 ---
+    # --- ここまで ---
 
     # ホストOS用のインストールツール(limineコマンド)をビルド
     cd limine
