@@ -79,7 +79,7 @@ pub extern "C" fn _start() -> ! {
     print_serial("OrcOS Microkernel Booted via Limine!\n");
 
     // フレームバッファの取得と画面描画
-    if let Some(response) = FRAMEBUFFER_REQUEST.get_response() {
+    if let Some(response) = FRAMEBUFFER_REQUEST.response() {
         if let Some(framebuffers) = response.framebuffers() {
             if let Some(fb) = framebuffers.first() {
                 let pitch = fb.pitch() as usize;
