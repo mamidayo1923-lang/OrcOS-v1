@@ -49,7 +49,7 @@ cp target/x86_64-orcos/debug/orcos iso_root/boot/orcos
 cp limine.conf iso_root/
 
 # 必要なファイルをISOフォルダにコピー
-cp limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin iso_root/
+cp limine/bin/limine-bios.sys limine/bin/limine-bios-cd.bin limine/bin/limine-uefi-cd.bin iso_root/
 
 echo "Generating ISO image..."
 xorriso -as mkisofs -b limine-bios-cd.bin \
@@ -59,7 +59,7 @@ xorriso -as mkisofs -b limine-bios-cd.bin \
     iso_root -o orcos.iso
 
 echo "Installing Limine to ISO for BIOS boot support..."
-./limine/limine bios-install orcos.iso
+./limine/bin/limine bios-install orcos.iso
 
 echo "========================================"
 echo "Success! Run with QEMU:"
