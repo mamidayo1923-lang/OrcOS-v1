@@ -82,11 +82,11 @@ pub extern "C" fn _start() -> ! {
     // ★ 修正箇所：limine 0.6.5の最新の記述方法に合わせてスッキリさせたよ！
     if let Some(response) = FRAMEBUFFER_REQUEST.response() {
         if let Some(fb) = response.framebuffers().first() {
-            let pitch = fb.pitch() as usize;
-            let bpp = fb.bpp() as usize;
-            let width = fb.width() as usize;
-            let height = fb.height() as usize;
-            let ptr = fb.addr() as *mut u8;
+            let pitch = fb.pitch as usize;
+            let bpp = fb.bpp as usize;
+            let width = fb.width as usize;
+            let height = fb.height as usize;
+            let ptr = fb.address() as *mut u8;
 
             // 背景を暗いネイビーブルーに塗りつぶす
             for y in 0..height {
