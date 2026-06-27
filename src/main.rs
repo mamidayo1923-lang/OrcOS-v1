@@ -79,34 +79,33 @@ pub extern "C" fn _start() -> ! {
     print_serial("OrcOS Microkernel Booted via Limine!\n");
 
     // フレームバッファの取得と画面描画
+    // ★ 修正箇所：limine 0.6.5の最新の記述方法に合わせてスッキリさせたよ！
     if let Some(response) = FRAMEBUFFER_REQUEST.response() {
-        if let Some(framebuffers) = response.framebuffers() {
-            if let Some(fb) = framebuffers.first() {
-                let pitch = fb.pitch() as usize;
-                let bpp = fb.bpp() as usize;
-                let width = fb.width() as usize;
-                let height = fb.height() as usize;
-                let ptr = fb.addr() as *mut u8;
+        if let Some(fb) = response.framebuffers().first() {
+            let pitch = fb.pitch() as usize;
+            let bpp = fb.bpp() as usize;
+            let width = fb.width() as usize;
+            let height = fb.height() as usize;
+            let ptr = fb.addr() as *mut u8;
 
-                // 背景を暗いネイビーブルーに塗りつぶす
-                for y in 0..height {
-                    for x in 0..width {
-                        let offset = y * pitch + x * (bpp / 8);
-                        unsafe {
-                            *ptr.add(offset) = 0x40;     // B
-                            *ptr.add(offset + 1) = 0x20; // G
-                            *ptr.add(offset + 2) = 0x10; // R
-                        }
+            // 背景を暗いネイビーブルーに塗りつぶす
+            for y in 0..height {
+                for x in 0..width {
+                    let offset = y * pitch + x * (bpp / 8);
+                    unsafe {
+                        *ptr.add(offset) = 0x40;     // B
+                        *ptr.add(offset + 1) = 0x20; // G
+                        *ptr.add(offset + 2) = 0x10; // R
                     }
                 }
-
-                // テキストの描画 (X: 10, Y: 10) に白色 (0xFFFFFF) で出力
-                draw_string(ptr, pitch, bpp, 10, 10, "Welcome to OrcOS!", 0xFFFFFF);
-                // (X: 10, Y: 30) に緑色 (0x00FF00) で出力
-                draw_string(ptr, pitch, bpp, 10, 30, "Microkernel Architecture initialized.", 0x00FF00); 
-                // (X: 10, Y: 50) に黄色 (0xFFFF00) で出力
-                draw_string(ptr, pitch, bpp, 10, 50, "Architecture: x86_64", 0xFFFF00); 
             }
+
+            // テキストの描画 (X: 10, Y: 10) に白色 (0xFFFFFF) で出力
+            draw_string(ptr, pitch, bpp, 10, 10, "Welcome to OrcOS!", 0xFFFFFF);
+            // (X: 10, Y: 30) に緑色 (0x00FF00) で出力
+            draw_string(ptr, pitch, bpp, 10, 30, "Microkernel Architecture initialized.", 0x00FF00); 
+            // (X: 10, Y: 50) に黄色 (0xFFFF00) で出力
+            draw_string(ptr, pitch, bpp, 10, 50, "Architecture: x86_64", 0xFFFF00); 
         }
     }
 
