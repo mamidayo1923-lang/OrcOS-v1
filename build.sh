@@ -16,7 +16,7 @@ if [ ! -d "limine" ]; then
     mkdir -p limine
     tar -xf limine.tar -C limine --strip-components=1
     
-    # ★ 修正箇所：Limine v8のビルドに必要な lld と llvm (llvm-objcopy) がなければ自動でインストール
+    # Limine v8のビルドに必要な lld と llvm (llvm-objcopy) がなければ自動でインストール
     if ! command -v ld.lld &> /dev/null || ! command -v llvm-objcopy &> /dev/null; then
         echo "Installing lld and llvm (required for Limine v8)..."
         sudo apt-get update
@@ -35,7 +35,8 @@ rm -rf iso_root
 mkdir -p iso_root/boot
 cp target/x86_64-orcos/debug/orcos iso_root/boot/orcos
 cp limine.conf iso_root/
-cp limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin iso_root/
+# ★ 修正箇所1：ファイルの場所を limine/ から limine/bin/ に変更
+cp limine/bin/limine-bios.sys limine/bin/limine-bios-cd.bin limine/bin/limine-uefi-cd.bin iso_root/
 
 echo "Generating ISO image..."
 xorriso -as mkisofs -b limine-bios-cd.bin \
@@ -45,7 +46,8 @@ xorriso -as mkisofs -b limine-bios-cd.bin \
     iso_root -o orcos.iso
 
 echo "Installing Limine to ISO for BIOS boot support..."
-./limine/limine bios-install orcos.iso
+# ★ 修正箇所2：ツールの場所を limine/limine から limine/bin/limine に変更
+./limine/bin/limine bios-install orcos.iso
 
 echo "========================================"
 echo "Success! Run with QEMU:"
