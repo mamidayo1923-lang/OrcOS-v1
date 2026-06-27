@@ -6,13 +6,16 @@ RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo build -Z build-std=core,compiler_built
 
 echo "Fetching Limine Bootloader..."
 if [ ! -d "limine" ]; then
-    # Limine 7系のバイナリブランチを直接クローンします。
-    # 安定して事前ビルドされたファイルを取得でき、エラーになりません。
-    echo "Cloning Limine v7 binary branch..."
-    git clone https://github.com/limine-bootloader/limine.git --branch v7.x-branch-binary --depth=1
+    # Limine開発チームによるブランチ削除やAPI制限を完全に回避するため、
+    # 確実に存在するリリース版のファイルを直接URLでダウンロードします。
+    echo "Downloading Limine v7.14.3 release..."
+    wget -qO limine.tar.xz https://github.com/limine-bootloader/limine/releases/download/v7.14.3/limine-7.14.3.tar.xz
+    mkdir -p limine
+    tar -xf limine.tar.xz -C limine --strip-components=1
 
     # ホストOS用のインストールツール(limineコマンド)をビルド
     cd limine
+    ./configure
     make
     cd ..
 fi
