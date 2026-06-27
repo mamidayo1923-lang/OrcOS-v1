@@ -2,12 +2,12 @@
 set -e
 
 echo "Building OrcOS Kernel..."
-# 修正: Rustコンパイラの最新仕様に合わせ -Z json-target-spec を追加
 RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo build -Z build-std=core,compiler_builtins -Z build-std-features=compiler-builtins-mem -Z json-target-spec --target x86_64-orcos.json
 
 echo "Fetching Limine Bootloader..."
 if [ ! -d "limine" ]; then
-    git clone https://github.com/limine-bootloader/limine.git --branch v7.x-branch-binary --depth=1
+    # ★ 修正箇所：Limineのブランチを最新のv8系に変更
+    git clone https://github.com/limine-bootloader/limine.git --branch v8.x-branch-binary --depth=1
 fi
 
 echo "Preparing ISO directory structure..."
