@@ -1,0 +1,39 @@
+name: Build OrcOS
+
+# mainブランチへのプッシュ、またはPull Request作成時に自動実行される
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (xorriso)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xorriso mtools
+
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src, llvm-tools-preview
+
+      - name: Build Kernel and Generate ISO
+        run: |
+          # 権限を付与して前回のビルドスクリプトを実行
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Upload ISO Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: orcos-iso
+          path: orcos.iso
+          retention-days: 7
