@@ -49,6 +49,10 @@ cp target/x86_64-orcos/debug/orcos iso_root/boot/orcos
 cp limine.conf iso_root/
 
 # 必要なファイルをISOフォルダにコピー
+cd limine
+./configure --enable-bios --enable-uefi
+make
+cd ..
 cp limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin iso_root/
 
 echo "Generating ISO image..."
