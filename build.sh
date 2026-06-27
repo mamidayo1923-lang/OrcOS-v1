@@ -6,12 +6,34 @@ RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo build -Z build-std=core,compiler_built
 
 echo "Fetching Limine Bootloader..."
 if [ ! -d "limine" ]; then
-    # Limine開発チームによるブランチ削除やAPI制限を完全に回避するため、
-    # 確実に存在するリリース版のファイルを直接URLでダウンロードします。
-    echo "Downloading Limine v7.14.3 release..."
-    wget -qO limine.tar.xz https://github.com/limine-bootloader/limine/releases/download/v7.14.3/limine-7.14.3.tar.xz
+    echo "Querying the latest Limine 7.x tag using git ls-remote to bypass GitHub API limits..."
+    # GitHubのAPI制限を回避するため、Gitプロトコルで確実に存在する最新のv7タグを自動取得します
+    LIMINE_TAG=$(git ls-remote --tags https://github.com/limine-bootloader/limine.git | awk '{print $2}' | grep -E '^refs/tags/v7\.[0-9]+\.[0-9]+$' | sed 's|^refs/tags/||' | sort -V | tail -n 1)
+    LIMINE_VERSION=${LIMINE_TAG#v}
+    echo "Latest Limine 7.x tag is: $LIMINE_TAG (Version: $LIMINE_VERSION)"
+
+    URL_XZ="https://github.com/limine-bootloader/limine/releases/download/${LIMINE_TAG}/limine-${LIMINE_VERSION}.tar.xz"
+    URL_GZ="https://github.com/limine-bootloader/limine/releases/download/${LIMINE_TAG}/limine-${LIMINE_VERSION}.tar.gz"
+
     mkdir -p limine
-    tar -xf limine.tar.xz -C limine --strip-components=1
+    
+    # wgetのエラーでスクリプトが止まらないようにする (set -e の一時解除)
+    set +e
+    
+    echo "Downloading $URL_XZ ..."
+    wget -qO limine.tar.xz "$URL_XZ"
+    
+    # ダウンロード成功 ＆ ファイルサイズが0ではないかチェック
+    if [ $? -eq 0 ] && [ -s limine.tar.xz ]; then
+        tar -xf limine.tar.xz -C limine --strip-components=1
+    else
+        echo "Fallback: Downloading $URL_GZ ..."
+        wget -qO limine.tar.gz "$URL_GZ"
+        tar -xf limine.tar.gz -C limine --strip-components=1
+    fi
+    
+    # エラー時の自動停止を元に戻す
+    set -e
 
     # ホストOS用のインストールツール(limineコマンド)をビルド
     cd limine
