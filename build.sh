@@ -6,7 +6,7 @@ RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo build -Z build-std=core,compiler_built
 
 echo "Fetching Limine Bootloader..."
 if [ ! -d "limine" ]; then
-    # ★ 修正箇所：バイナリブランチが廃止されたため、最新のリリース版(tarファイル)を直接ダウンロードするように変更しました！
+    # バイナリブランチが廃止されたため、最新のリリース版(tarファイル)を直接ダウンロードするように変更
     echo "Downloading Limine release..."
     URL=$(curl -s https://api.github.com/repos/limine-bootloader/limine/releases/latest | grep "browser_download_url" | grep -E "\.tar\.(gz|xz)" | head -n 1 | cut -d '"' -f 4)
     if [ -z "$URL" ]; then
@@ -16,6 +16,13 @@ if [ ! -d "limine" ]; then
     mkdir -p limine
     tar -xf limine.tar -C limine --strip-components=1
     
+    # ★ 修正箇所：Limine v8のビルドに必要な lld がなければ自動でインストールする処理を追加
+    if ! command -v ld.lld &> /dev/null; then
+        echo "Installing lld (required for Limine v8)..."
+        sudo apt-get update
+        sudo apt-get install -y lld
+    fi
+
     # ホストOS(Linux)用のインストールツールをビルド
     cd limine
     ./configure
