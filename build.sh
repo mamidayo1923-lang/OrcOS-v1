@@ -35,6 +35,24 @@ if [ ! -d "limine" ]; then
     # エラー時の自動停止を元に戻す
     set -e
 
+    # --- ここから nasm のチェックとインストール（追加） ---
+    # Limine の configure が nasm を必要とするため、ホストに nasm がなければ自動で入れる
+    if ! command -v nasm >/dev/null 2>&1; then
+      echo "nasm が見つかりません。インストールを試みます..."
+      if command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends nasm
+      elif command -v yum >/dev/null 2>&1; then
+        sudo yum install -y nasm
+      elif command -v brew >/dev/null 2>&1; then
+        brew install nasm
+      else
+        echo "自動インストールがサポートされていない環境です。手動で nasm をインストールしてください。" >&2
+        exit 1
+      fi
+    fi
+    # --- ここまで追加 ---
+
     # ホストOS用のインストールツール(limineコマンド)をビルド
     cd limine
     ./configure
