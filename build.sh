@@ -16,11 +16,11 @@ if [ ! -d "limine" ]; then
     mkdir -p limine
     tar -xf limine.tar -C limine --strip-components=1
     
-    # ★ 修正箇所：Limine v8のビルドに必要な lld がなければ自動でインストールする処理を追加
-    if ! command -v ld.lld &> /dev/null; then
-        echo "Installing lld (required for Limine v8)..."
+    # ★ 修正箇所：Limine v8のビルドに必要な lld と llvm (llvm-objcopy) がなければ自動でインストール
+    if ! command -v ld.lld &> /dev/null || ! command -v llvm-objcopy &> /dev/null; then
+        echo "Installing lld and llvm (required for Limine v8)..."
         sudo apt-get update
-        sudo apt-get install -y lld
+        sudo apt-get install -y lld llvm
     fi
 
     # ホストOS(Linux)用のインストールツールをビルド
