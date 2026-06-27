@@ -15,10 +15,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies (xorriso)
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xorriso mtools
+          sudo apt-get install -y \
+            xorriso mtools \
+            gcc-multilib g++-multilib \
+            nasm \
+            build-essential
 
       - name: Install Rust Nightly
         uses: dtolnay/rust-toolchain@nightly
