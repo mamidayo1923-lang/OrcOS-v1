@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-limine = "0.3.0"
+limine = "0.6.5" # 0.3.0 を最新の 0.6.5 などに変更する
 font8x8 = { version = "0.3.1", default-features = false, features = ["unicode"] }
