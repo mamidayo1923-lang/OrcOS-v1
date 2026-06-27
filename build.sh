@@ -2,8 +2,8 @@
 set -e
 
 echo "Building OrcOS Kernel..."
-# .cargoフォルダの代わりとして、コンパイルオプションと環境変数を直接指定する
-RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo build -Z build-std=core,compiler_builtins -Z build-std-features=compiler-builtins-mem --target x86_64-orcos.json
+# 修正: Rustコンパイラの最新仕様に合わせ -Z json-target-spec を追加
+RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo build -Z build-std=core,compiler_builtins -Z build-std-features=compiler-builtins-mem -Z json-target-spec --target x86_64-orcos.json
 
 echo "Fetching Limine Bootloader..."
 if [ ! -d "limine" ]; then
