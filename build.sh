@@ -6,11 +6,10 @@ RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo build -Z build-std=core,compiler_built
 
 echo "Fetching Limine Bootloader..."
 if [ ! -d "limine" ]; then
-    # GitHubのAPI制限やバージョン依存を回避するため、
-    # Limine公式が推奨している「バイナリブランチ(v8.x-branch-binary)」を直接取得します。
-    # これにより事前にビルドされたファイルが確実に取得でき、LLVM等の追加ツールも不要になります。
-    echo "Cloning Limine v8 binary branch..."
-    git clone https://github.com/limine-bootloader/limine.git --branch v8.x-branch-binary --depth=1
+    # Limine 7系のバイナリブランチを直接クローンします。
+    # 安定して事前ビルドされたファイルを取得でき、エラーになりません。
+    echo "Cloning Limine v7 binary branch..."
+    git clone https://github.com/limine-bootloader/limine.git --branch v7.x-branch-binary --depth=1
 
     # ホストOS用のインストールツール(limineコマンド)をビルド
     cd limine
@@ -24,7 +23,7 @@ mkdir -p iso_root/boot
 cp target/x86_64-orcos/debug/orcos iso_root/boot/orcos
 cp limine.conf iso_root/
 
-# バイナリブランチの場合、必要なファイルは limine/ 直下に用意されています
+# 必要なファイルをISOフォルダにコピー
 cp limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin iso_root/
 
 echo "Generating ISO image..."
