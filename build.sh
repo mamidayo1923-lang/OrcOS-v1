@@ -7,35 +7,19 @@ RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo build -Z build-std=core,compiler_built
 echo "Fetching Limine Bootloader..."
 if [ ! -d "limine" ]; then
     echo "Querying the latest Limine 7.x tag using git ls-remote to bypass GitHub API limits..."
-    # GitHubのAPI制限を回避するため、Gitプロトコルで確実に存在する最新のv7タグを自動取得します
+    # API制限を回避して最新のv7タグを自動取得
     LIMINE_TAG=$(git ls-remote --tags https://github.com/limine-bootloader/limine.git | awk '{print $2}' | grep -E '^refs/tags/v7\.[0-9]+\.[0-9]+$' | sed 's|^refs/tags/||' | sort -V | tail -n 1)
     LIMINE_VERSION=${LIMINE_TAG#v}
     echo "Latest Limine 7.x tag is: $LIMINE_TAG (Version: $LIMINE_VERSION)"
 
     URL_XZ="https://github.com/limine-bootloader/limine/releases/download/${LIMINE_TAG}/limine-${LIMINE_VERSION}.tar.xz"
-    URL_GZ="https://github.com/limine-bootloader/limine/releases/download/${LIMINE_TAG}/limine-${LIMINE_VERSION}.tar.gz"
-
     mkdir -p limine
-    
-    # wgetのエラーでスクリプトが止まらないようにする (set -e の一時解除)
-    set +e
     
     echo "Downloading $URL_XZ ..."
     wget -qO limine.tar.xz "$URL_XZ"
-    
-    # ダウンロード成功 ＆ ファイルサイズが0ではないかチェック
-    if [ $? -eq 0 ] && [ -s limine.tar.xz ]; then
-        tar -xf limine.tar.xz -C limine --strip-components=1
-    else
-        echo "Fallback: Downloading $URL_GZ ..."
-        wget -qO limine.tar.gz "$URL_GZ"
-        tar -xf limine.tar.gz -C limine --strip-components=1
-    fi
-    
-    # エラー時の自動停止を元に戻す
-    set -e
+    tar -xf limine.tar.xz -C limine --strip-components=1
 
-    # ホストOS用のインストールツール(limineコマンド)をビルド
+    # ホストOS用の操作ツール（limineコマンド）だけをシンプルにビルド
     cd limine
     ./configure
     make
@@ -48,19 +32,17 @@ mkdir -p iso_root/boot
 cp target/x86_64-orcos/debug/orcos iso_root/boot/orcos
 cp limine.conf iso_root/
 
-# 必要なファイルをISOフォルダにコピー
-cd limine
-./configure --enable-bios --enable-uefi
-make
-cd ..
+echo "Finding and copying Limine bootloader files..."
+# フォルダ構造が変わっても、同梱されている完成品ファイルを確実に見つけてコピーするコマンド
+find limine -type f -name "limine-bios.sys" -exec cp -v {} iso_root/ \;
+find limine -type f -name "limine-bios-cd.bin" -exec cp -v {} iso_root/ \;
+find limine -type f -name "limine-uefi-cd.bin" -exec cp -v {} iso_root/ \;
 
-# ビルド成功確認
-if [ ! -f "limine/limine-bios.sys" ] || [ ! -f "limine/limine-bios-cd.bin" ] || [ ! -f "limine/limine-uefi-cd.bin" ]; then
-    echo "ERROR: Limine build failed - required bootloader files not generated"
+# ファイルが正しくコピーされたか念のためチェック
+if [ ! -f "iso_root/limine-bios.sys" ]; then
+    echo "ERROR: Required bootloader files not found!"
     exit 1
 fi
-
-cp limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin iso_root/
 
 echo "Generating ISO image..."
 xorriso -as mkisofs -b limine-bios-cd.bin \
@@ -70,7 +52,9 @@ xorriso -as mkisofs -b limine-bios-cd.bin \
     iso_root -o orcos.iso
 
 echo "Installing Limine to ISO for BIOS boot support..."
-./limine/bin/limine bios-install orcos.iso
+# 実行ファイル(limine)も自動で見つけて実行
+LIMINE_TOOL=$(find limine -type f -name "limine" -executable | head -n 1)
+$LIMINE_TOOL bios-install orcos.iso
 
 echo "========================================"
 echo "Success! Run with QEMU:"
