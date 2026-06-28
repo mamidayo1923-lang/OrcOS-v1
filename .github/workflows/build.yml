@@ -15,11 +15,8 @@ jobs:
       RUSTUP_HOME: ${{ runner.temp }}/rustup
 
     steps:
-      - name: Checkout repository (with submodules)
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-          fetch-depth: 0
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -31,75 +28,30 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Install system dependencies (including multilib for -m32)
+      - name: Install system dependencies (ISO tools & compilers)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            gcc-multilib \
-            g++-multilib \
-            libc6-dev-i386 \
+            xorriso \
+            mtools \
             nasm \
-            binutils-multiarch \
-            make \
-            pkg-config \
-            curl \
-            git
+            build-essential \
+            make
 
-      - name: Install Rust toolchain (nightly if needed)
-        uses: dtolnay/rust-toolchain@v1
+      - name: Install Rust toolchain (Nightly for OS development)
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: stable
+          toolchain: nightly
+          components: rust-src, llvm-tools-preview
           override: true
 
-      - name: Ensure limine / submodules present
+      - name: Run Build Script (Generate ISO)
         run: |
-          if [ -d limine ]; then
-            echo "limine directory exists"
-          else
-            echo "limine not present at top-level; continuing (may be vendored elsewhere)"
-          fi
+          chmod +x build.sh
+          ./build.sh
 
-      - name: Fix invalid -march flags if present
-        run: |
-          # Search and replace a common typo -march=i6 -> -march=i686 in checked-out code (limine and any subdirs)
-          # This is a safe on-the-fly fix in CI to avoid failing the build due to a typo in upstream Makefile.
-          set -e
-          found=false
-          # look in repository (excluding .git)
-          while IFS= read -r -d '' file; do
-            if grep -q -- '-march=i6' "$file"; then
-              echo "Patching $file"
-              sed -i 's/-march=i6/-march=i686/g' "$file"
-              found=true
-            fi
-          done < <(git ls-files -z)
-          if [ "$found" = true ]; then
-            echo "Patched occurrences of -march=i6 -> -march=i686"
-          else
-            echo "No -march=i6 occurrences found in repo files"
-          fi
-
-      - name: Build limine and decompressor (if found)
-        run: |
-          set -e
-          if [ -d limine ]; then
-            pushd limine
-            make clean || true
-            make || true
-            popd
-          else
-            echo "limine directory not found; skipping limine build"
-          fi
-
-      - name: Build project
-        run: |
-          set -e
-          # ここは元のリポジトリのビルドコマンドに合わせてください。
-          # 例: make all か cargo build --release など
-          if [ -f Makefile ]; then
-            make
-          else
-            # Rust プロジェクトの場合の例
-            cargo build --release || true
-          fi
+      - name: Upload ISO Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: orcos-iso
+          path: orcos.iso
