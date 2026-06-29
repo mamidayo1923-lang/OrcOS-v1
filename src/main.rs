@@ -39,22 +39,33 @@ fn panic(_info: &PanicInfo) -> ! {
     }
 }
 
+/// 任意の色のピクセルを描画する基本関数
+fn draw_pixel(fb_ptr: *mut u8, pitch: usize, bpp: usize, x: usize, y: usize, color: u32) {
+    let pixel_offset = y * pitch + x * (bpp / 8);
+    unsafe {
+        let ptr = fb_ptr.add(pixel_offset);
+        *ptr = (color & 0xFF) as u8;                 // B (Blue)
+        *ptr.add(1) = ((color >> 8) & 0xFF) as u8;   // G (Green)
+        *ptr.add(2) = ((color >> 16) & 0xFF) as u8;  // R (Red)
+    }
+}
+
+/// 塗りつぶしの四角形を描画する関数（新機能！）
+fn draw_rect(fb_ptr: *mut u8, pitch: usize, bpp: usize, x: usize, y: usize, width: usize, height: usize, color: u32) {
+    for i in 0..height {
+        for j in 0..width {
+            draw_pixel(fb_ptr, pitch, bpp, x + j, y + i, color);
+        }
+    }
+}
+
 /// 指定された座標に1文字を描画する関数
 fn draw_char(fb_ptr: *mut u8, pitch: usize, bpp: usize, x: usize, y: usize, c: char, color: u32) {
-    // font8x8から文字のビットマップデータを取得
     if let Some(glyph) = BASIC_FONTS.get(c) {
         for (row_idx, row_data) in glyph.iter().enumerate() {
             for col_idx in 0..8 {
-                // ビットが立っている（1である）か判定
                 if (*row_data & (1 << col_idx)) != 0 {
-                    let pixel_offset = (y + row_idx) * pitch + (x + col_idx) * (bpp / 8);
-                    unsafe {
-                        // LimineのデフォルトはB-G-R-Aの順序
-                        let ptr = fb_ptr.add(pixel_offset);
-                        *ptr = (color & 0xFF) as u8;                 // B (Blue)
-                        *ptr.add(1) = ((color >> 8) & 0xFF) as u8;   // G (Green)
-                        *ptr.add(2) = ((color >> 16) & 0xFF) as u8;  // R (Red)
-                    }
+                    draw_pixel(fb_ptr, pitch, bpp, x + col_idx, y + row_idx, color);
                 }
             }
         }
@@ -72,14 +83,11 @@ fn draw_string(fb_ptr: *mut u8, pitch: usize, bpp: usize, mut x: usize, y: usize
 /// OSのエントリポイント
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    // ブートローダがLimineプロトコルをサポートしているか確認
     assert!(BASE_REVISION.is_supported());
 
-    // シリアルポートへ起動メッセージを出力
     print_serial("OrcOS Microkernel Booted via Limine!\n");
 
-    // フレームバッファの取得と画面描画
-    // ★ 修正箇所：limine 0.6.5の最新の記述方法に合わせてスッキリさせたよ！
+    // ★ get_response() から response() に修正完了！
     if let Some(response) = FRAMEBUFFER_REQUEST.response() {
         if let Some(fb) = response.framebuffers().first() {
             let pitch = fb.pitch as usize;
@@ -88,30 +96,39 @@ pub extern "C" fn _start() -> ! {
             let height = fb.height as usize;
             let ptr = fb.address() as *mut u8;
 
-            // 背景を暗いネイビーブルーに塗りつぶす
-            for y in 0..height {
-                for x in 0..width {
-                    let offset = y * pitch + x * (bpp / 8);
-                    unsafe {
-                        *ptr.add(offset) = 0x40;     // B
-                        *ptr.add(offset + 1) = 0x20; // G
-                        *ptr.add(offset + 2) = 0x10; // R
-                    }
-                }
-            }
+            // 背景を暗いネイビーブルーに塗りつぶす (R:0x10, G:0x20, B:0x40)
+            draw_rect(ptr, pitch, bpp, 0, 0, width, height, 0x102040);
 
-            // テキストの描画 (X: 10, Y: 10) に白色 (0xFFFFFF) で出力
-            draw_string(ptr, pitch, bpp, 10, 10, "Welcome to OrcOS!", 0xFFFFFF);
-            // (X: 10, Y: 30) に緑色 (0x00FF00) で出力
-            draw_string(ptr, pitch, bpp, 10, 30, "Microkernel Architecture initialized.", 0x00FF00); 
-            // (X: 10, Y: 50) に黄色 (0xFFFF00) で出力
-            draw_string(ptr, pitch, bpp, 10, 50, "Architecture: x86_64", 0xFFFF00); 
+            // ---------------------------------------------
+            // ウィンドウっぽいUIを描画してみよう！
+            // ---------------------------------------------
+            let win_x = 50;
+            let win_y = 50;
+            let win_w = 400;
+            let win_h = 200;
+            
+            // 1. ウィンドウの影（少し右下にずらして暗い色を置く）
+            draw_rect(ptr, pitch, bpp, win_x + 5, win_y + 5, win_w, win_h, 0x081020);
+            
+            // 2. ウィンドウ本体（ダークグレー）
+            draw_rect(ptr, pitch, bpp, win_x, win_y, win_w, win_h, 0x303030);
+            
+            // 3. タイトルバー（青色）
+            draw_rect(ptr, pitch, bpp, win_x, win_y, win_w, 20, 0x0050A0);
+
+            // 4. タイトルバーのテキスト
+            draw_string(ptr, pitch, bpp, win_x + 5, win_y + 6, "OrcOS System Info", 0xFFFFFF);
+            
+            // 5. ウィンドウ内のテキスト
+            draw_string(ptr, pitch, bpp, win_x + 10, win_y + 40, "Welcome to OrcOS!", 0xFFFFFF);
+            draw_string(ptr, pitch, bpp, win_x + 10, win_y + 60, "Microkernel Architecture initialized.", 0x00FF00); 
+            draw_string(ptr, pitch, bpp, win_x + 10, win_y + 80, "Architecture: x86_64", 0xFFFF00); 
+            draw_string(ptr, pitch, bpp, win_x + 10, win_y + 100, "Limine Bootloader: OK", 0x00FFFF); 
         }
     }
 
     print_serial("Initialization complete. Halting CPU.\n");
 
-    // カーネルが終了しないようにCPUを待機状態にするループ
     loop {
         unsafe { asm!("hlt"); }
     }
