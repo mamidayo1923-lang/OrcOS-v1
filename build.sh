@@ -6,9 +6,13 @@ RUSTFLAGS="-C link-arg=-Tlinker.ld" cargo build -Z build-std=core,compiler_built
 
 echo "Fetching Limine Bootloader..."
 if [ ! -d "limine" ]; then
-    echo "Cloning Limine v7.x binary branch..."
+    echo "Cloning Limine binary branch..."
     # 公式が用意している「コンパイル済みバイナリ入り」の専用ブランチを直接取得！
-    git clone https://github.com/limine-bootloader/limine.git --branch v7.x-branch-binary --depth=1
+    # 最新の v8.x-binary を試し、見つからなければ v7.x-binary にフォールバックします
+    if ! git clone https://github.com/limine-bootloader/limine.git --branch v8.x-binary --depth=1; then
+        echo "v8.x-binary branch not found, falling back to v7.x-binary..."
+        git clone https://github.com/limine-bootloader/limine.git --branch v7.x-binary --depth=1
+    fi
     
     # ISOに書き込むためのホスト用ツール（limineコマンド）のみをビルド
     make -C limine
